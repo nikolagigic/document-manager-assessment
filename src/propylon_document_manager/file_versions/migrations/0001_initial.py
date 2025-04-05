@@ -3,6 +3,7 @@
 import django.contrib.auth.models
 import django.utils.timezone
 from django.db import migrations, models
+import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -13,14 +14,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name="FileVersion",
-            fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("file_name", models.CharField(max_length=512)),
-                ("version_number", models.IntegerField()),
-            ],
-        ),
         migrations.CreateModel(
             name="User",
             fields=[
@@ -85,5 +78,41 @@ class Migration(migrations.Migration):
             managers=[
                 ("objects", django.contrib.auth.models.UserManager()),
             ],
+        ),
+        migrations.CreateModel(
+            name="File",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("url_path", models.CharField(max_length=1024)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("content_type", models.CharField(help_text="MIME type of the file", max_length=255)),
+                ("owner", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="documents", to="file_versions.user")),
+            ],
+            options={
+                "unique_together": {("url_path", "owner")},
+                "indexes": [
+                    models.Index(fields=["url_path", "owner"], name="file_url_owner_idx"),
+                ],
+            },
+        ),
+        migrations.CreateModel(
+            name="FileVersion",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("version_number", models.IntegerField()),
+                ("content_hash", models.CharField(help_text="SHA-256 hash of the file content", max_length=64)),
+                ("content", models.BinaryField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("file_name", models.CharField(max_length=512)),
+                ("file", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="versions", to="file_versions.file")),
+            ],
+            options={
+                "ordering": ["-version_number"],
+                "unique_together": {("file", "version_number")},
+                "indexes": [
+                    models.Index(fields=["content_hash"], name="file_content_hash_idx"),
+                ],
+            },
         ),
     ]

@@ -278,3 +278,12 @@ propylon_document_manager/media/
 
 ### DB
 *.sqlite*
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.test.local
+.env.production.local

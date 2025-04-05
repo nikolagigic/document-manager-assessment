@@ -4,7 +4,9 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
-from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+
+from propylon_document_manager.file_versions.api.auth import CustomTokenObtainPairView
 
 # API URLS
 urlpatterns = [
@@ -12,7 +14,10 @@ urlpatterns = [
     path("api/", include("propylon_document_manager.site.api_router")),
     # DRF auth token
     path("api-auth/", include("rest_framework.urls")),
-    path("auth-token/", obtain_auth_token),
+    # JWT endpoints
+    path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
 ]
 
 if settings.DEBUG:

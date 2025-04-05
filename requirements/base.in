@@ -2,12 +2,15 @@ python-slugify  # https://github.com/un33k/python-slugify
 Pillow  # https://github.com/python-pillow/Pillow
 argon2-cffi  # https://github.com/hynek/argon2_cffi
 whitenoise  # https://github.com/evansd/whitenoise
+python-dotenv  # https://github.com/theskumar/python-dotenv
 
 # Django
 # ------------------------------------------------------------------------------
 django  # pyup: < 4.2  # https://www.djangoproject.com/
 django-environ  # https://github.com/joke2k/django-environ
 django-model-utils  # https://github.com/jazzband/django-model-utils
+django-allauth  # https://github.com/pennersr/django-allauth
 # Django REST Framework
 djangorestframework  # https://github.com/encode/django-rest-framework
+djangorestframework-simplejwt  # https://github.com/jazzband/djangorestframework-simplejwt
 django-cors-headers  # https://github.com/adamchainz/django-cors-headers

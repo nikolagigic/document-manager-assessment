@@ -1,6 +1,6 @@
 from django.shortcuts import render
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -21,60 +21,53 @@ class FileViewSet(viewsets.ModelViewSet):
     - Listing user's files
     """
     serializer_class = FileSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
         """Return files owned by the current user."""
         return File.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
-        """Create a new file with initial version."""
-        file = serializer.save()
-        # Create initial version if file content is provided
-        if 'content' in self.request.FILES:
-            FileVersion.objects.create(
-                file=file,
-                version_number=1,
-                content=self.request.FILES['content'].read(),
-                file_name=self.request.FILES['content'].name
+        # Check if a file with the same URL path already exists for this user
+        url_path = self.request.data.get('url_path')
+        existing_file = File.objects.filter(owner=self.request.user, url_path=url_path).first()
+        
+        if existing_file:
+            # Create a new version of the existing file
+            content = self.request.FILES.get('content').read()
+            file_version = FileVersion.objects.create(
+                file=existing_file,
+                file_name=self.request.data.get('file_name'),
+                content=content,
+                version_number=existing_file.versions.count() + 1
             )
-
-    @action(detail=True, methods=['post'])
-    def upload_version(self, request, pk=None):
-        """Upload a new version of an existing file."""
-        file = self.get_object()
-        if 'content' not in request.FILES:
-            return Response(
-                {'error': 'No file content provided'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Get the next version number
-        latest_version = file.versions.aggregate(Max('version_number'))['version_number__max'] or 0
-        new_version = latest_version + 1
-
-        # Create new version
-        version = FileVersion.objects.create(
+            # Return the updated file with all versions
+            return Response(FileSerializer(existing_file).data, status=status.HTTP_201_CREATED)
+        
+        # If no existing file, create a new one with content_type
+        file = serializer.save(
+            owner=self.request.user,
+            content_type=self.request.data.get('content_type')
+        )
+        
+        # Create the initial version
+        content = self.request.FILES.get('content').read()
+        file_version = FileVersion.objects.create(
             file=file,
-            version_number=new_version,
-            content=request.FILES['content'].read(),
-            file_name=request.FILES['content'].name
+            file_name=self.request.data.get('file_name'),
+            content=content,
+            version_number=1
         )
+        
+        # Return the file with its initial version
+        return Response(FileSerializer(file).data, status=status.HTTP_201_CREATED)
 
-        return Response(
-            FileVersionSerializer(version).data,
-            status=status.HTTP_201_CREATED
-        )
-
-    @action(detail=True, methods=['get'], url_path='get_version/(?P<version_number>[0-9]+)')
-    def get_version(self, request, pk=None, version_number=None):
-        """Get a specific version of a file."""
+    @action(detail=True, methods=['get'])
+    def versions(self, request, pk=None):
         file = self.get_object()
-        version = get_object_or_404(
-            file.versions,
-            version_number=version_number
-        )
-        return Response(FileVersionSerializer(version).data)
+        versions = FileVersion.objects.filter(file=file).order_by('-created_at')
+        serializer = FileVersionSerializer(versions, many=True)
+        return Response(serializer.data)
 
 class FileVersionViewSet(viewsets.ReadOnlyModelViewSet):
     """

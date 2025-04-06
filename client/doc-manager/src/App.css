@@ -1,6 +1,7 @@
 .App {
   min-height: 100vh;
   background-color: #f8f9fa;
+  text-align: center;
 }
 
 .App-logo {
@@ -15,16 +16,18 @@
 }
 
 .App-header {
-  background-color: #ffffff;
+  background-color: #282c34;
   padding: 20px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  text-align: center;
 }
 
 .App-header h1 {
   margin: 0;
-  color: #333;
-  font-size: 2rem;
+  font-size: 1.5em;
 }
 
 .App-main {
@@ -68,4 +71,20 @@ body {
   to {
     transform: rotate(360deg);
   }
+}
+
+.logout-button {
+  background-color: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s;
+}
+
+.logout-button:hover {
+  background-color: white;
+  color: #282c34;
 }

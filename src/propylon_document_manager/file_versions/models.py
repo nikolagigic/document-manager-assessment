@@ -18,10 +18,10 @@ class User(AbstractUser):
     first_name = None  # type: ignore
     last_name = None  # type: ignore
     email = EmailField(_("email address"), unique=True)
-    username = None  # type: ignore
+    username = CharField(_("username"), max_length=150, unique=True, null=True, blank=True)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ["username"]
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.

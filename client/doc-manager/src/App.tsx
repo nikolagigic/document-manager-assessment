@@ -1,24 +1,36 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { Container, Typography, CircularProgress, Box } from '@mui/material';
 import { AuthProvider } from './contexts/AuthContext';
-import FileUpload from './components/FileUpload';
-import FileVersions from './components/FileVersions';
-import { Container, Typography, Box } from '@mui/material';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Lazy load components
+const FileUpload = React.lazy(() => import('./components/FileUpload'));
+const FileVersions = React.lazy(() => import('./components/FileVersions'));
+
+const LoadingFallback = () => (
+  <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+    <CircularProgress />
+  </Box>
+);
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Container maxWidth="lg">
-        <Box className="py-8">
-          <Typography variant="h3" component="h1" className="mb-8">
+    <ErrorBoundary>
+      <AuthProvider>
+        <Container maxWidth="lg" className="mx-auto px-4 py-8">
+          <Typography variant="h4" component="h1" className="mb-8 text-center">
             Document Manager
           </Typography>
-          <Box className="space-y-8">
+          
+          <Suspense fallback={<LoadingFallback />}>
             <FileUpload />
-            <FileVersions />
-          </Box>
-        </Box>
-      </Container>
-    </AuthProvider>
+            <Box className="mt-8">
+              <FileVersions />
+            </Box>
+          </Suspense>
+        </Container>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

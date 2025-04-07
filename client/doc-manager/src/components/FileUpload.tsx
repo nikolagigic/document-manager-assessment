@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Button, 
@@ -6,7 +6,8 @@ import {
   Typography, 
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Paper
 } from '@mui/material';
 
 const FileUpload: React.FC = () => {
@@ -16,18 +17,43 @@ const FileUpload: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setFile(event.target.files[0]);
-      setError(null);
+  const resetForm = useCallback(() => {
+    setFile(null);
+    setDescription('');
+    setError(null);
+    setSuccess(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setError(null);
+      setSuccess(false);
+    }
+  }, []);
+
+  const validateForm = useCallback(() => {
     if (!file) {
       setError('Please select a file');
+      return false;
+    }
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      setError('File size must be less than 10MB');
+      return false;
+    }
+    return true;
+  }, [file]);
+
+  const handleSubmit = useCallback(async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
@@ -36,7 +62,7 @@ const FileUpload: React.FC = () => {
     setSuccess(false);
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file!);
     formData.append('description', description);
 
     try {
@@ -54,59 +80,85 @@ const FileUpload: React.FC = () => {
       }
 
       setSuccess(true);
-      setFile(null);
-      setDescription('');
+      resetForm();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to upload file');
     } finally {
       setUploading(false);
     }
-  };
+  }, [file, description, getAuthHeader, validateForm, resetForm]);
 
   return (
-    <Box component="form" onSubmit={handleSubmit} className="space-y-4">
-      <Typography variant="h5" className="mb-4">
-        Upload New File Version
+    <Paper elevation={2} className="p-6">
+      <Typography variant="h5" component="h2" className="mb-4">
+        Upload New File
       </Typography>
 
-      {error && (
-        <Alert severity="error" className="mb-4">
-          {error}
-        </Alert>
-      )}
+      <form onSubmit={handleSubmit}>
+        <Box className="space-y-4">
+          <div>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              className="hidden"
+              id="file-upload"
+              disabled={uploading}
+            />
+            <label htmlFor="file-upload">
+              <Button
+                variant="contained"
+                component="span"
+                disabled={uploading}
+                className="w-full"
+              >
+                {file ? file.name : 'Select File'}
+              </Button>
+            </label>
+          </div>
 
-      {success && (
-        <Alert severity="success" className="mb-4">
-          File uploaded successfully!
-        </Alert>
-      )}
+          <TextField
+            label="Description"
+            variant="outlined"
+            fullWidth
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={uploading}
+            multiline
+            rows={3}
+          />
 
-      <TextField
-        type="file"
-        onChange={handleFileChange}
-        fullWidth
-        className="mb-4"
-      />
+          {error && (
+            <Alert severity="error" className="mt-2">
+              {error}
+            </Alert>
+          )}
 
-      <TextField
-        label="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        fullWidth
-        multiline
-        rows={3}
-        className="mb-4"
-      />
+          {success && (
+            <Alert severity="success" className="mt-2">
+              File uploaded successfully!
+            </Alert>
+          )}
 
-      <Button
-        type="submit"
-        variant="contained"
-        color="primary"
-        disabled={uploading || !file}
-      >
-        {uploading ? <CircularProgress size={24} /> : 'Upload'}
-      </Button>
-    </Box>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            disabled={!file || uploading}
+            className="w-full"
+          >
+            {uploading ? (
+              <>
+                <CircularProgress size={20} className="mr-2" />
+                Uploading...
+              </>
+            ) : (
+              'Upload File'
+            )}
+          </Button>
+        </Box>
+      </form>
+    </Paper>
   );
 };
 

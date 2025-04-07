@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FileVersion, User } from '../types';
 import FileVersionItem from './FileVersionItem';
@@ -6,7 +6,9 @@ import {
   Typography, 
   CircularProgress, 
   Alert,
-  Container
+  Container,
+  Box,
+  Button
 } from '@mui/material';
 
 const FileVersions: React.FC = () => {
@@ -15,44 +17,52 @@ const FileVersions: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [versionsResponse, usersResponse] = await Promise.all([
-          fetch('/api/file-versions/', {
-            headers: getAuthHeader(),
-          }),
-          fetch('/api/users/', {
-            headers: getAuthHeader(),
-          }),
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      const [versionsResponse, usersResponse] = await Promise.all([
+        fetch('/api/file-versions/', {
+          headers: getAuthHeader(),
+        }),
+        fetch('/api/users/', {
+          headers: getAuthHeader(),
+        }),
+      ]);
 
-        if (!versionsResponse.ok || !usersResponse.ok) {
-          throw new Error('Failed to fetch data');
-        }
-
-        const [versionsData, usersData] = await Promise.all([
-          versionsResponse.json(),
-          usersResponse.json(),
-        ]);
-
-        setVersions(versionsData);
-        setUsers(usersData);
-      } catch (error) {
-        setError('Failed to load versions');
-        console.error('Error fetching data:', error);
-      } finally {
-        setLoading(false);
+      if (!versionsResponse.ok || !usersResponse.ok) {
+        throw new Error('Failed to fetch data');
       }
-    };
 
-    fetchData();
+      const [versionsData, usersData] = await Promise.all([
+        versionsResponse.json(),
+        usersResponse.json(),
+      ]);
+
+      setVersions(versionsData);
+      setUsers(usersData);
+      setError(null);
+    } catch (error) {
+      setError('Failed to load versions');
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [getAuthHeader]);
 
-  const handleDelete = (versionId: number) => {
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleDelete = useCallback((versionId: number) => {
     setVersions(prevVersions => prevVersions.filter(v => v.id !== versionId));
-  };
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchData();
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -65,27 +75,57 @@ const FileVersions: React.FC = () => {
   if (error) {
     return (
       <Container>
-        <Alert severity="error">{error}</Alert>
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={handleRefresh}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Container>
     );
   }
 
   return (
     <Container>
-      <Typography variant="h4" className="mb-6">
-        File Versions
-      </Typography>
+      <Box className="flex justify-between items-center mb-6">
+        <Typography variant="h4">
+          File Versions
+        </Typography>
+        <Button
+          variant="outlined"
+          onClick={handleRefresh}
+          disabled={refreshing}
+        >
+          {refreshing ? (
+            <>
+              <CircularProgress size={20} className="mr-2" />
+              Refreshing...
+            </>
+          ) : (
+            'Refresh'
+          )}
+        </Button>
+      </Box>
+
       {versions.length === 0 ? (
-        <Typography>No versions available.</Typography>
+        <Alert severity="info">
+          No versions available. Upload a file to get started.
+        </Alert>
       ) : (
-        versions.map(version => (
-          <FileVersionItem
-            key={version.id}
-            version={version}
-            onDelete={handleDelete}
-            users={users}
-          />
-        ))
+        <Box className="space-y-4">
+          {versions.map(version => (
+            <FileVersionItem
+              key={version.id}
+              version={version}
+              onDelete={handleDelete}
+              users={users}
+            />
+          ))}
+        </Box>
       )}
     </Container>
   );

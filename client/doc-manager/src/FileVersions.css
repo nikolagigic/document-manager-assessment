@@ -59,6 +59,114 @@
   font-size: 0.9rem;
 }
 
+.version-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.version-actions button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.version-actions button:hover {
+  background: #5a6268;
+}
+
+.version-diff {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.version-diff pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.permissions-dialog {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.permissions-dialog h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.permissions-section {
+  margin-bottom: 15px;
+}
+
+.permissions-section h5 {
+  margin: 0 0 10px 0;
+  color: #666;
+}
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.user-list label:hover {
+  background-color: #e9ecef;
+}
+
+.user-list input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.permissions-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.permissions-actions button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.permissions-actions button:last-child {
+  background: #6c757d;
+}
+
+.permissions-actions button:hover {
+  opacity: 0.9;
+}
+
 .loading {
   text-align: center;
   padding: 40px;

@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db import models
 
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
@@ -6,10 +7,13 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Max
+from django.contrib.auth import get_user_model
 
 from ..models import File, FileVersion
-from .serializers import FileSerializer, FileVersionSerializer
+from .serializers import FileSerializer, FileVersionSerializer, UserSerializer
 from .permissions import IsOwnerOrReadOnly
+
+User = get_user_model()
 
 class FileViewSet(viewsets.ModelViewSet):
     """
@@ -69,7 +73,7 @@ class FileViewSet(viewsets.ModelViewSet):
         serializer = FileVersionSerializer(versions, many=True)
         return Response(serializer.data)
 
-class FileVersionViewSet(viewsets.ReadOnlyModelViewSet):
+class FileVersionViewSet(viewsets.ModelViewSet):
     """
     ViewSet for retrieving file versions.
     Read-only access to file versions with content-addressable storage.
@@ -79,5 +83,68 @@ class FileVersionViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'content_hash'
 
     def get_queryset(self):
-        """Return versions of files owned by the current user."""
-        return FileVersion.objects.filter(file__owner=self.request.user)
+        """Return versions that the user has read access to."""
+        user = self.request.user
+        return FileVersion.objects.filter(
+            models.Q(file__owner=user) |  # User owns the file
+            models.Q(can_read=user)       # User has read permission
+        ).distinct()
+
+    def get_object(self):
+        """
+        Override get_object to handle multiple versions with the same content hash.
+        Returns the latest version when multiple versions share the same content hash.
+        """
+        queryset = self.get_queryset()
+        content_hash = self.kwargs.get('content_hash')
+        
+        # Get all versions with the given content hash
+        versions = queryset.filter(content_hash=content_hash)
+        
+        if not versions.exists():
+            raise Http404("No version found with this content hash")
+            
+        # Return the latest version
+        return versions.latest('created_at')
+
+    def perform_create(self, serializer):
+        """Create a new version with proper permissions."""
+        file = serializer.validated_data['file']
+        if file.owner != self.request.user and self.request.user not in file.versions.first().can_write.all():
+            raise permissions.PermissionDenied("You don't have write permission for this file.")
+        
+        # Set the version number
+        latest_version = file.versions.order_by('-version_number').first()
+        version_number = (latest_version.version_number + 1) if latest_version else 1
+        
+        serializer.save(version_number=version_number)
+
+    @action(detail=True, methods=['post'])
+    def set_permissions(self, request, content_hash=None):
+        """Set read/write permissions for a version."""
+        version = self.get_object()
+        if version.file.owner != request.user:
+            raise permissions.PermissionDenied("Only the file owner can set permissions.")
+        
+        can_read = request.data.get('can_read', [])
+        can_write = request.data.get('can_write', [])
+        
+        # Get the users
+        read_users = User.objects.filter(id__in=can_read)
+        write_users = User.objects.filter(id__in=can_write)
+        
+        # Prevent setting permissions for the file owner
+        if version.file.owner in read_users or version.file.owner in write_users:
+            raise permissions.PermissionDenied("Cannot set permissions for the file owner.")
+        
+        version.can_read.set(read_users)
+        version.can_write.set(write_users)
+        
+        return Response(FileVersionSerializer(version).data)
+
+    @action(detail=False, methods=['get'])
+    def available_users(self, request):
+        """Get list of users that can be granted permissions."""
+        users = User.objects.exclude(id=request.user.id)  # Exclude current user
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)

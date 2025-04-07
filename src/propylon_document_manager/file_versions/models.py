@@ -35,53 +35,51 @@ class User(AbstractUser):
 
 class File(models.Model):
     """
-    Represents a document in the system. Each file can have multiple versions.
-    The url_path is unique per user, allowing different users to have files at the same path.
+    Model representing a file in the system.
+    Each file has a unique URL path per user and can have multiple versions.
     """
-    url_path = models.CharField(max_length=1024)
+    url_path = models.CharField(max_length=255)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='files')
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="documents")
-    content_type = models.CharField(max_length=255, help_text="MIME type of the file")
-    
+    content_type = models.CharField(max_length=100)
+
     class Meta:
-        unique_together = ['url_path', 'owner']
-        indexes = [
-            models.Index(fields=['url_path', 'owner'], name='file_url_owner_idx'),
-        ]
+        unique_together = ('url_path', 'owner')
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.url_path} (owned by {self.owner.email})"
+        return f"{self.url_path} (owned by {self.owner.username})"
 
 
 class FileVersion(models.Model):
     """
-    Represents a specific version of a file. Uses content addressable storage
-    to store the actual file content.
+    Model representing a version of a file.
+    Uses content-addressable storage with SHA-256 hashing.
     """
-    file = models.ForeignKey(File, on_delete=models.CASCADE, related_name="versions")
+    file = models.ForeignKey(File, on_delete=models.CASCADE, related_name='versions')
     version_number = models.IntegerField()
-    content_hash = models.CharField(max_length=64, help_text="SHA-256 hash of the file content")
+    content_hash = models.CharField(max_length=64, db_index=True)
     content = models.BinaryField()
     created_at = models.DateTimeField(auto_now_add=True)
-    file_name = models.CharField(max_length=512)
-    
+    file_name = models.CharField(max_length=255)
+    can_read = models.ManyToManyField(User, related_name='readable_versions', blank=True)
+    can_write = models.ManyToManyField(User, related_name='writable_versions', blank=True)
+
     class Meta:
-        unique_together = ['file', 'version_number']
-        ordering = ['-version_number']
+        ordering = ['-created_at']
+        unique_together = ('file', 'version_number')
         indexes = [
-            models.Index(fields=['content_hash'], name='file_content_hash_idx'),
+            models.Index(fields=['content_hash'], name='content_hash_idx'),
         ]
 
     def __str__(self):
-        return f"{self.file.url_path} v{self.version_number}"
+        return f"Version {self.version_number} of {self.file.url_path}"
 
-    @classmethod
-    def calculate_content_hash(cls, content):
-        """Calculate SHA-256 hash of the content."""
-        return hashlib.sha256(content).hexdigest()
+    def calculate_content_hash(self):
+        """Calculate SHA-256 hash of the file content."""
+        return hashlib.sha256(self.content).hexdigest()
 
     def save(self, *args, **kwargs):
         if not self.content_hash:
-            self.content_hash = self.calculate_content_hash(self.content)
+            self.content_hash = self.calculate_content_hash()
         super().save(*args, **kwargs)

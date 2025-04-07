@@ -7,7 +7,7 @@ function FileUpload({ onUploadSuccess }) {
   const [urlPath, setUrlPath] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { token } = useAuth();
+  const { getAuthHeader } = useAuth();
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -47,7 +47,7 @@ function FileUpload({ onUploadSuccess }) {
       const response = await fetch('http://localhost:8001/api/files/', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          ...getAuthHeader()
         },
         body: formData,
       });

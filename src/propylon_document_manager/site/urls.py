@@ -4,9 +4,9 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
+from rest_framework_simplejwt.views import TokenRefreshView
 
-from propylon_document_manager.file_versions.api.auth import CustomTokenObtainPairView
+from propylon_document_manager.file_versions.api.auth import CustomTokenObtainPairView, CustomTokenVerifyView
 
 # API URLS
 urlpatterns = [
@@ -17,7 +17,7 @@ urlpatterns = [
     # JWT endpoints
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+    path("api/token/verify/", CustomTokenVerifyView.as_view(), name="token_verify"),
 ]
 
 if settings.DEBUG:

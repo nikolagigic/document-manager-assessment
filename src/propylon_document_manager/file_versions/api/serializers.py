@@ -1,22 +1,67 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from ..models import File, FileVersion
+import difflib
+
+User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username']
+        read_only_fields = ['id', 'email', 'username']
 
 class FileVersionSerializer(serializers.ModelSerializer):
     """Serializer for file versions with content-addressable storage."""
     content_hash = serializers.CharField(read_only=True)
     file_name = serializers.CharField(required=True)
     content = serializers.FileField(required=True)
+    can_read = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
+    can_write = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all(), required=False)
+    diff_with_previous = serializers.SerializerMethodField()
+    file_owner = serializers.SerializerMethodField()
     
     class Meta:
         model = FileVersion
-        fields = ['id', 'file', 'file_name', 'content', 'content_hash', 'created_at', 'version_number']
-        read_only_fields = ['id', 'content_hash', 'created_at']
+        fields = ['id', 'file', 'file_name', 'content', 'content_hash', 'created_at', 'version_number', 'can_read', 'can_write', 'diff_with_previous', 'file_owner']
+        read_only_fields = ['id', 'content_hash', 'created_at', 'version_number']
 
     def validate_content(self, value):
         """Validate file content and calculate hash."""
         if not value:
             raise serializers.ValidationError("File content is required")
         return value
+
+    def get_diff_with_previous(self, obj):
+        """Get the differences between this version and the previous version."""
+        previous_version = FileVersion.objects.filter(
+            file=obj.file,
+            version_number__lt=obj.version_number
+        ).order_by('-version_number').first()
+
+        if not previous_version:
+            return None
+
+        # Convert binary content to strings for comparison
+        current_content = obj.content.decode('utf-8', errors='ignore')
+        previous_content = previous_version.content.decode('utf-8', errors='ignore')
+
+        # Generate diff
+        diff = difflib.unified_diff(
+            previous_content.splitlines(),
+            current_content.splitlines(),
+            fromfile=f'v{previous_version.version_number}',
+            tofile=f'v{obj.version_number}',
+            lineterm=''
+        )
+        return '\n'.join(diff)
+
+    def get_file_owner(self, obj):
+        """Get the owner of the file."""
+        return {
+            'id': obj.file.owner.id,
+            'username': obj.file.owner.username
+        }
 
 class FileSerializer(serializers.ModelSerializer):
     """Serializer for files with their latest version."""

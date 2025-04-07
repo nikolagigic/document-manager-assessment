@@ -14,16 +14,22 @@ export interface File {
 
 export interface FileVersion {
   id: number;
-  file: File;
   version_number: number;
-  file_path: string;
-  created_at: string;
-  can_read: User[];
-  can_write: User[];
+  file: {
+    id: number;
+    name: string;
+    owner: {
+      id: number;
+      username: string;
+    };
+  };
   file_owner: {
     id: number;
     username: string;
   };
+  uploaded_at: string;
+  can_read: User[];
+  can_write: User[];
 }
 
 export interface AuthContextType {

@@ -1,98 +1,93 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { FileVersion, User } from '../types';
 import FileVersionItem from './FileVersionItem';
-import { FileVersionsProps, FileVersion } from '../types';
+import { 
+  Typography, 
+  CircularProgress, 
+  Alert,
+  Container
+} from '@mui/material';
 
-const FileVersions: React.FC<FileVersionsProps> = ({ fileId }) => {
-  const [versions, setVersions] = useState<FileVersion[]>([]);
-  const [error, setError] = useState<string | null>(null);
+const FileVersions: React.FC = () => {
   const { getAuthHeader } = useAuth();
-
-  const fetchVersions = async () => {
-    try {
-      const response = await fetch(`/api/versions/?file=${fileId}`, {
-        headers: getAuthHeader(),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setVersions(data);
-      } else {
-        setError('Failed to fetch versions');
-      }
-    } catch (error) {
-      setError('Error fetching versions');
-      console.error('Error:', error);
-    }
-  };
+  const [versions, setVersions] = useState<FileVersion[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchVersions();
-  }, [fileId, getAuthHeader]);
+    const fetchData = async () => {
+      try {
+        const [versionsResponse, usersResponse] = await Promise.all([
+          fetch('/api/file-versions/', {
+            headers: getAuthHeader(),
+          }),
+          fetch('/api/users/', {
+            headers: getAuthHeader(),
+          }),
+        ]);
 
-  const handleDelete = async (versionId: number) => {
-    try {
-      const response = await fetch(`/api/versions/${versionId}/`, {
-        method: 'DELETE',
-        headers: getAuthHeader(),
-      });
-      if (response.ok) {
-        setVersions(versions.filter(v => v.id !== versionId));
-      } else {
-        setError('Failed to delete version');
+        if (!versionsResponse.ok || !usersResponse.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const [versionsData, usersData] = await Promise.all([
+          versionsResponse.json(),
+          usersResponse.json(),
+        ]);
+
+        setVersions(versionsData);
+        setUsers(usersData);
+      } catch (error) {
+        setError('Failed to load versions');
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      setError('Error deleting version');
-      console.error('Error:', error);
-    }
+    };
+
+    fetchData();
+  }, [getAuthHeader]);
+
+  const handleDelete = (versionId: number) => {
+    setVersions(prevVersions => prevVersions.filter(v => v.id !== versionId));
   };
 
-  const handlePermissionsChange = async (versionId: number, canRead: number[], canWrite: number[]) => {
-    try {
-      const response = await fetch(`/api/versions/${versionId}/set_permissions/`, {
-        method: 'POST',
-        headers: {
-          ...getAuthHeader(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          can_read: canRead,
-          can_write: canWrite,
-        }),
-      });
-      if (response.ok) {
-        const updatedVersion = await response.json();
-        setVersions(versions.map(v => v.id === versionId ? updatedVersion : v));
-      } else {
-        setError('Failed to update permissions');
-      }
-    } catch (error) {
-      setError('Error updating permissions');
-      console.error('Error:', error);
-    }
-  };
+  if (loading) {
+    return (
+      <Container className="flex justify-center items-center h-64">
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   if (error) {
     return (
-      <div className="p-4 text-red-500 bg-red-50 rounded-lg">
-        {error}
-      </div>
+      <Container>
+        <Alert severity="error">{error}</Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">File Versions</h2>
-      <div className="space-y-2">
-        {versions.map(version => (
+    <Container>
+      <Typography variant="h4" className="mb-6">
+        File Versions
+      </Typography>
+      {versions.length === 0 ? (
+        <Typography>No versions available.</Typography>
+      ) : (
+        versions.map(version => (
           <FileVersionItem
             key={version.id}
             version={version}
             onDelete={handleDelete}
-            onPermissionsChange={handlePermissionsChange}
+            users={users}
           />
-        ))}
-      </div>
-    </div>
+        ))
+      )}
+    </Container>
   );
 };
 

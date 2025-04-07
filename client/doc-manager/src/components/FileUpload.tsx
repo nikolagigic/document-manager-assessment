@@ -1,58 +1,112 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { FileUploadProps } from '../types';
-import { Button } from './ui/button';
+import { 
+  Button, 
+  TextField, 
+  Typography, 
+  Box,
+  Alert,
+  CircularProgress
+} from '@mui/material';
 
-const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete }) => {
-  const [error, setError] = useState<string | null>(null);
+const FileUpload: React.FC = () => {
   const { getAuthHeader } = useAuth();
+  const [file, setFile] = useState<File | null>(null);
+  const [description, setDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setFile(event.target.files[0]);
+      setError(null);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!file) {
+      setError('Please select a file');
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+    setSuccess(false);
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('description', description);
 
     try {
-      const response = await fetch('/api/versions/', {
+      const response = await fetch('/api/file-versions/', {
         method: 'POST',
-        headers: getAuthHeader(),
+        headers: {
+          ...getAuthHeader(),
+        },
         body: formData,
       });
 
-      if (response.ok) {
-        onUploadComplete();
-      } else {
-        setError('Failed to upload file');
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || 'Failed to upload file');
       }
+
+      setSuccess(true);
+      setFile(null);
+      setDescription('');
     } catch (error) {
-      setError('Error uploading file');
-      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to upload file');
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <Box component="form" onSubmit={handleSubmit} className="space-y-4">
+      <Typography variant="h5" className="mb-4">
+        Upload New File Version
+      </Typography>
+
       {error && (
-        <div className="p-4 text-red-500 bg-red-50 rounded-lg">
+        <Alert severity="error" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
+
+      {success && (
+        <Alert severity="success" className="mb-4">
+          File uploaded successfully!
+        </Alert>
+      )}
+
+      <TextField
+        type="file"
+        onChange={handleFileChange}
+        fullWidth
+        className="mb-4"
+      />
+
+      <TextField
+        label="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        fullWidth
+        multiline
+        rows={3}
+        className="mb-4"
+      />
+
       <Button
-        variant="default"
-        asChild
+        type="submit"
+        variant="contained"
+        color="primary"
+        disabled={uploading || !file}
       >
-        <label className="cursor-pointer">
-          Upload New Version
-          <input
-            type="file"
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-        </label>
+        {uploading ? <CircularProgress size={24} /> : 'Upload'}
       </Button>
-    </div>
+    </Box>
   );
 };
 

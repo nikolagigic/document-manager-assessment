@@ -24,20 +24,19 @@ A document management system built with Django and React, featuring version cont
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/document-manager-assessment.git
+   git clone git@github.com:nikolagigic/document-manager-assessment.git
    cd document-manager-assessment
    ```
 
 2. Create and activate a virtual environment:
    ```bash
-   python3.11 -m venv .env_python3.11
+   make build
    source .env_python3.11/bin/activate  # On Windows: .env_python3.11\Scripts\activate
    ```
 
 3. Install dependencies and set up the database:
    ```bash
-   make build
-   make fixtures
+   make fixture
    make serve
    ```
 

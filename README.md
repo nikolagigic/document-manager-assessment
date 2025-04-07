@@ -1,138 +1,130 @@
-# Document Manager
+# Propylon Document Manager
 
-A web application for managing document versions with user permissions.
+A document management system built with Django and React, featuring version control and permission management.
 
 ## Features
 
-- User authentication with JWT tokens
-- File version management
-- Granular permission control (read/write)
-- Material-UI based responsive interface
-- TypeScript support
-
-## Tech Stack
-
-### Backend
-- Django
-- Django REST Framework
-- JWT Authentication
-- SQLite (default, can be changed to PostgreSQL)
-
-### Frontend
-- React
-- TypeScript
-- Material-UI
-- Axios
+- Document version control
+- User authentication and authorization
+- File upload and management
+- Permission-based access control
+- RESTful API
+- Modern React frontend with Material-UI
 
 ## Prerequisites
 
-- Python 3.11 (required for virtual environment)
+- Python 3.11
 - Node.js v18.19.0 (LTS)
 - Make
 
-## Setup
+## Installation
 
 ### Backend Setup
 
-1. Create the virtual environment and install dependencies:
-```bash
-make build
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/document-manager-assessment.git
+   cd document-manager-assessment
+   ```
 
-2. Create initial fixtures (sample data):
-```bash
-make fixtures
-```
+2. Create and activate a virtual environment:
+   ```bash
+   python3.11 -m venv .env_python3.11
+   source .env_python3.11/bin/activate  # On Windows: .env_python3.11\Scripts\activate
+   ```
 
-3. Create two superusers for testing:
-```bash
-python manage.py createsuperuser
-# Follow the prompts to create the first user
-python manage.py createsuperuser
-# Follow the prompts to create the second user
-```
+3. Install dependencies and set up the database:
+   ```bash
+   make build
+   make fixtures
+   make serve
+   ```
 
-4. Start the development server:
-```bash
-make serve
-```
-The server will start on port 8001.
+4. Create two superusers for testing:
+   ```bash
+   python manage.py createsuperuser
+   # Create first user with email: admin@example.com
+   # Create second user with email: user2@example.com
+   ```
 
-5. (Optional) Run tests:
-```bash
-make test
-```
+The backend will be running at http://localhost:8001
 
 ### Frontend Setup
 
-1. Navigate to the client directory:
-```bash
-cd client/doc-manager
-```
+1. Navigate to the frontend directory:
+   ```bash
+   cd client/doc-manager
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 3. Start the development server:
-```bash
-npm start
-```
-The React app will start on port 3000.
+   ```bash
+   npm start
+   ```
+
+The frontend will be running at http://localhost:3000
 
 ## Testing the Application
 
-1. Open your browser and navigate to `http://localhost:3000`
-2. Log in with one of the superuser accounts you created
-3. Upload a file using the file upload component
-4. Create another file version
-5. Test the permissions by:
-   - Logging in as the second user
-   - Verifying that you can see the files shared with you
-   - Attempting to modify permissions (should be restricted)
+1. Log in with the first superuser (admin@example.com)
+2. Upload some test files
+3. Log in with the second superuser (user2@example.com)
+4. Test the permission management system:
+   - Try to access files owned by the first user
+   - Request permissions
+   - Test read/write access
 
-## API Documentation
+### Test Data
 
-See [API.md](API.md) for detailed API documentation.
+The application comes with pre-loaded test data:
+
+1. Two superusers:
+   - admin@example.com / admin
+   - user2@example.com / (password set during creation)
+
+2. Sample documents:
+   - bill_document
+   - amendment_document
+   - act_document
+   - statute_document
+
+## Available Make Commands
+
+- `make build` - Install dependencies and build the project
+- `make fixtures` - Load initial test data
+- `make serve` - Run the development server
+- `make test` - Run tests
+- `make clean` - Clean build artifacts
+- `make env_clean` - Clean virtual environment
 
 ## Project Structure
 
 ```
-.
-├── client/
-│   └── doc-manager/          # Frontend React application
-│       ├── src/
-│       │   ├── components/   # React components
-│       │   ├── contexts/     # React contexts
-│       │   └── types/        # TypeScript type definitions
-│       └── package.json
+document-manager-assessment/
 ├── src/
-│   └── propylon_document_manager/  # Backend Django application
-│       ├── file_versions/    # File version management app
-│       ├── users/           # User management app
-│       └── settings.py      # Django settings
-├── requirements.txt
-├── Makefile                 # Development utilities
-└── manage.py
+│   └── propylon_document_manager/
+│       ├── file_versions/      # File version management
+│       ├── site/              # Django project settings
+│       └── utils/             # Utility functions
+├── client/
+│   └── doc-manager/          # React frontend
+├── requirements/             # Python dependencies
+├── Makefile                 # Build and development commands
+└── README.md
 ```
 
-## Available Make Commands
+## Database
 
-- `make build` - Create virtual environment and install dependencies
-- `make fixtures` - Create initial fixtures
-- `make serve` - Start the development server
-- `make test` - Run the test suite
-- `make clean` - Clean up build artifacts
+The project uses SQLite for development. The database file is located at `src/propylon_document_manager/db.sqlite3`.
 
-## Contributing
+## API Documentation
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+The API documentation is available at http://localhost:8001/api/docs/ when running in development mode.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

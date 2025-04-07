@@ -16,6 +16,7 @@ A document management system built with Django and React, featuring version cont
 - Python 3.11
 - Node.js v18.19.0 (LTS)
 - Make
+- nvm (Node Version Manager)
 
 ## Installation
 
@@ -56,12 +57,17 @@ The backend will be running at http://localhost:8001
    cd client/doc-manager
    ```
 
-2. Install dependencies:
+2. Use the correct Node.js version:
+   ```bash
+   nvm use 18.19.0
+   ```
+
+3. Install dependencies:
    ```bash
    npm install
    ```
 
-3. Start the development server:
+4. Start the development server:
    ```bash
    npm start
    ```

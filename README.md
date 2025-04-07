@@ -16,7 +16,7 @@ A web application for managing document versions with user permissions.
 - Django
 - Django REST Framework
 - JWT Authentication
-- PostgreSQL
+- SQLite (default, can be changed to PostgreSQL)
 
 ### Frontend
 - React
@@ -26,58 +26,71 @@ A web application for managing document versions with user permissions.
 
 ## Prerequisites
 
-- Python 3.8+
-- Node.js 14+
-- PostgreSQL
+- Python 3.11 (required for virtual environment)
+- Node.js v18.19.0 (LTS)
+- Make
 
 ## Setup
 
 ### Backend Setup
 
-1. Create and activate a virtual environment:
+1. Create the virtual environment and install dependencies:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+make build
 ```
 
-2. Install dependencies:
+2. Create initial fixtures (sample data):
 ```bash
-pip install -r requirements.txt
+make fixtures
 ```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-4. Run migrations:
-```bash
-python manage.py migrate
-```
-
-5. Create a superuser:
+3. Create two superusers for testing:
 ```bash
 python manage.py createsuperuser
+# Follow the prompts to create the first user
+python manage.py createsuperuser
+# Follow the prompts to create the second user
 ```
 
-6. Run the development server:
+4. Start the development server:
 ```bash
-python manage.py runserver
+make serve
+```
+The server will start on port 8001.
+
+5. (Optional) Run tests:
+```bash
+make test
 ```
 
 ### Frontend Setup
 
-1. Install dependencies:
+1. Navigate to the client directory:
 ```bash
 cd client/doc-manager
+```
+
+2. Install dependencies:
+```bash
 npm install
 ```
 
-2. Start the development server:
+3. Start the development server:
 ```bash
 npm start
 ```
+The React app will start on port 3000.
+
+## Testing the Application
+
+1. Open your browser and navigate to `http://localhost:3000`
+2. Log in with one of the superuser accounts you created
+3. Upload a file using the file upload component
+4. Create another file version
+5. Test the permissions by:
+   - Logging in as the second user
+   - Verifying that you can see the files shared with you
+   - Attempting to modify permissions (should be restricted)
 
 ## API Documentation
 
@@ -100,8 +113,17 @@ See [API.md](API.md) for detailed API documentation.
 │       ├── users/           # User management app
 │       └── settings.py      # Django settings
 ├── requirements.txt
+├── Makefile                 # Development utilities
 └── manage.py
 ```
+
+## Available Make Commands
+
+- `make build` - Create virtual environment and install dependencies
+- `make fixtures` - Create initial fixtures
+- `make serve` - Start the development server
+- `make test` - Run the test suite
+- `make clean` - Clean up build artifacts
 
 ## Contributing
 

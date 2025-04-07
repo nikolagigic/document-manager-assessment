@@ -1,19 +1,116 @@
-# Propylon Document Manager Assessment
+# Document Manager
 
-The Propylon Document Management Technical Assessment is a simple (and incomplete) web application consisting of a basic API backend and a React based client.  This API/client can be used as a bootstrap to implement the specific features requested in the assessment description. 
+A web application for managing document versions with user permissions.
 
-## Getting Started
-### API Development
-The API project is a [Django/DRF](https://www.django-rest-framework.org/) project that utilizes a [Makefile](https://www.gnu.org/software/make/manual/make.html) for a convenient interface to access development utilities. This application uses [SQLite](https://www.sqlite.org/index.html) as the default persistence database you are more than welcome to change this. This project requires Python 3.11 in order to create the virtual environment.  You will need to ensure that this version of Python is installed on your OS before building the virtual environment.  Running the below commmands should get the development environment running using the Django development server.
-1. `$ make build` to create the virtual environment.
-2. `$ make fixtures` to create a small number of fixture file versions.
-3. `$ make serve` to start the development server on port 8001.
-4. `$ make test` to run the limited test suite via PyTest.
-### Client Development 
-The client project is a [Create React App](https://create-react-app.dev/) that has been tested against [Node v18.19.0 Hydrogen LTS](https://nodejs.org/download/release/v18.19.0/).  An [.nvmrc](https://github.com/nvm-sh/nvm#calling-nvm-use-automatically-in-a-directory-with-a-nvmrc-file) file has been included so that the command `$ nvm use` should select the correct NodeJS version through NVM.
-1. Navigate to the client/doc-manager directory.
-2. `$ npm install` to install the dependencies.
-3. `$ npm start` to start the React development server.
+## Features
 
-##
-[![Built with Cookiecutter Django](https://img.shields.io/badge/built%20with-Cookiecutter%20Django-ff69b4.svg?logo=cookiecutter)](https://github.com/cookiecutter/cookiecutter-django/)
+- User authentication with JWT tokens
+- File version management
+- Granular permission control (read/write)
+- Material-UI based responsive interface
+- TypeScript support
+
+## Tech Stack
+
+### Backend
+- Django
+- Django REST Framework
+- JWT Authentication
+- PostgreSQL
+
+### Frontend
+- React
+- TypeScript
+- Material-UI
+- Axios
+
+## Prerequisites
+
+- Python 3.8+
+- Node.js 14+
+- PostgreSQL
+
+## Setup
+
+### Backend Setup
+
+1. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. Run migrations:
+```bash
+python manage.py migrate
+```
+
+5. Create a superuser:
+```bash
+python manage.py createsuperuser
+```
+
+6. Run the development server:
+```bash
+python manage.py runserver
+```
+
+### Frontend Setup
+
+1. Install dependencies:
+```bash
+cd client/doc-manager
+npm install
+```
+
+2. Start the development server:
+```bash
+npm start
+```
+
+## API Documentation
+
+See [API.md](API.md) for detailed API documentation.
+
+## Project Structure
+
+```
+.
+├── client/
+│   └── doc-manager/          # Frontend React application
+│       ├── src/
+│       │   ├── components/   # React components
+│       │   ├── contexts/     # React contexts
+│       │   └── types/        # TypeScript type definitions
+│       └── package.json
+├── src/
+│   └── propylon_document_manager/  # Backend Django application
+│       ├── file_versions/    # File version management app
+│       ├── users/           # User management app
+│       └── settings.py      # Django settings
+├── requirements.txt
+└── manage.py
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

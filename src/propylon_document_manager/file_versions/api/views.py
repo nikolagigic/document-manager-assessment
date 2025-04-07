@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.db import models
+from django.http import Http404
 
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
@@ -71,6 +72,29 @@ class FileViewSet(viewsets.ModelViewSet):
         file = self.get_object()
         versions = FileVersion.objects.filter(file=file).order_by('-created_at')
         serializer = FileVersionSerializer(versions, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def get_version(self, request, pk=None):
+        """
+        Get a specific version of a file by revision number.
+        If no revision is specified, returns the latest version.
+        """
+        file = self.get_object()
+        revision = request.query_params.get('revision')
+        
+        if revision is not None:
+            try:
+                revision = int(revision)
+                version = FileVersion.objects.get(file=file, version_number=revision)
+            except (ValueError, FileVersion.DoesNotExist):
+                raise Http404("Version not found")
+        else:
+            version = file.versions.first()
+            if not version:
+                raise Http404("No versions found")
+        
+        serializer = FileVersionSerializer(version)
         return Response(serializer.data)
 
 class FileVersionViewSet(viewsets.ModelViewSet):

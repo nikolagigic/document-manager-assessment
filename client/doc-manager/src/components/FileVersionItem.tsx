@@ -16,12 +16,14 @@ import {
   List,
   ListItem,
   ListItemText,
-  CircularProgress
+  CircularProgress,
+  Box,
+  Alert
 } from '@mui/material';
 
 interface FileVersionItemProps {
   version: FileVersion;
-  onDelete: (versionId: number) => void;
+  onDelete: (id: number) => void;
   users: User[];
 }
 
@@ -32,6 +34,8 @@ const FileVersionItem: React.FC<FileVersionItemProps> = ({ version, onDelete, us
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentVersion, setCurrentVersion] = useState<FileVersion | null>(null);
 
   // Filter out the file owner from the users list
   const availableUsers = useMemo(() => 
@@ -121,101 +125,138 @@ const FileVersionItem: React.FC<FileVersionItemProps> = ({ version, onDelete, us
     }
   }, [version.id, selectedUsers, getAuthHeader]);
 
+  const handleGetVersion = useCallback(async (revision?: number) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = new URL(`/api/files/${version.file}/get_version/`, window.location.origin);
+      if (revision !== undefined) {
+        url.searchParams.append('revision', revision.toString());
+      }
+
+      const response = await fetch(url.toString(), {
+        headers: getAuthHeader(),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch version');
+      }
+
+      const data = await response.json();
+      setCurrentVersion(data);
+    } catch (error) {
+      setError('Failed to fetch version');
+      console.error('Error fetching version:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [version.file, getAuthHeader]);
+
   const isOwner = useMemo(() => 
     user?.id === version.file_owner.id,
     [user?.id, version.file_owner.id]
   );
 
   return (
-    <Card className="mb-4">
-      <CardContent>
-        <Typography variant="h6">Version {version.version_number}</Typography>
-        <Typography color="textSecondary">
-          Uploaded by: {version.file_owner.username}
+    <Box className="p-4 border rounded-lg shadow-sm">
+      <Box className="flex justify-between items-center mb-4">
+        <Typography variant="h6">
+          Version {version.version_number}
         </Typography>
-        <Typography color="textSecondary">
-          Uploaded at: {new Date(version.uploaded_at).toLocaleString()}
-        </Typography>
-        {error && (
-          <Typography color="error" className="mt-2">
-            {error}
-          </Typography>
-        )}
-        <div className="mt-4">
+        <Box>
           {isOwner && (
             <Button
-              variant="contained"
-              color="primary"
+              variant="outlined"
               onClick={() => setPermissionsOpen(true)}
               className="mr-2"
-              disabled={isSaving}
             >
-              {isSaving ? 'Saving...' : 'Manage Permissions'}
+              Manage Permissions
             </Button>
           )}
           <Button
-            variant="contained"
-            color="secondary"
+            variant="outlined"
+            color="error"
             onClick={handleDelete}
             disabled={isDeleting}
           >
-            {isDeleting ? 'Deleting...' : 'Delete Version'}
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </Button>
-        </div>
-      </CardContent>
+        </Box>
+      </Box>
 
-      <Dialog 
-        open={permissionsOpen} 
-        onClose={() => !isSaving && setPermissionsOpen(false)}
+      <Box className="space-y-2">
+        <Typography>
+          <strong>File Name:</strong> {version.file_name}
+        </Typography>
+        <Typography>
+          <strong>Created:</strong> {new Date(version.created_at).toLocaleString()}
+        </Typography>
+        <Typography>
+          <strong>Content Hash:</strong> {version.content_hash}
+        </Typography>
+      </Box>
+
+      {error && (
+        <Alert severity="error" className="mt-4">
+          {error}
+        </Alert>
+      )}
+
+      <Dialog
+        open={permissionsOpen}
+        onClose={() => setPermissionsOpen(false)}
         maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Manage Permissions</DialogTitle>
         <DialogContent>
           <FormGroup>
-            <Typography variant="subtitle1" className="mb-2">Can Read</Typography>
-            <List>
-              {availableUsers.map(user => (
-                <ListItem key={user.id}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedUsers[user.id] || false}
-                        onChange={() => handlePermissionChange(user.id.toString())}
-                        disabled={isSaving}
-                      />
-                    }
-                    label={<ListItemText primary={user.username} />}
+            {availableUsers.map(user => (
+              <FormControlLabel
+                key={user.id}
+                control={
+                  <Checkbox
+                    checked={selectedUsers[user.id] || false}
+                    onChange={() => handlePermissionChange(user.id.toString())}
                   />
-                </ListItem>
-              ))}
-            </List>
+                }
+                label={user.username || user.email}
+              />
+            ))}
           </FormGroup>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setPermissionsOpen(false)} 
+          <Button onClick={() => setPermissionsOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleSavePermissions}
             disabled={isSaving}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSavePermissions} 
             color="primary"
-            disabled={isSaving}
           >
-            {isSaving ? (
-              <>
-                <CircularProgress size={20} className="mr-2" />
-                Saving...
-              </>
-            ) : (
-              'Save'
-            )}
+            {isSaving ? 'Saving...' : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Card>
+
+      {isLoading ? (
+        <Box className="flex justify-center items-center p-4">
+          <CircularProgress />
+        </Box>
+      ) : currentVersion ? (
+        <Box className="mt-4 p-4 border rounded">
+          <Typography variant="h6">Version Details</Typography>
+          <Typography>
+            <strong>Version Number:</strong> {currentVersion.version_number}
+          </Typography>
+          <Typography>
+            <strong>Created:</strong> {new Date(currentVersion.created_at).toLocaleString()}
+          </Typography>
+          <Typography>
+            <strong>Content Hash:</strong> {currentVersion.content_hash}
+          </Typography>
+        </Box>
+      ) : null}
+    </Box>
   );
 };
 
